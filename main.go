@@ -17,20 +17,6 @@ import (
 )
 
 func HandleRequest(_ context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	if request.HTTPMethod == "OPTIONS" {
-		return events.APIGatewayProxyResponse{
-			StatusCode: 200,
-			Headers: map[string]string{
-				"Access-Control-Allow-Origin":      "*",
-				"Access-Control-Allow-Credentials": "true",
-				"Access-Control-Allow-Headers":     "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
-				"Access-Control-Allow-Methods":     "OPTIONS,POST",
-				"Access-Control-Expose-Headers":    "x-api-key,x-request-id",
-				"Access-Control-Max-Age":           "86400", // One day
-			},
-		}, nil
-	}
-
 	ms := mailersend.NewMailersend(os.Getenv("MAILERSEND_API_KEY"))
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -127,13 +113,7 @@ func HandleRequest(_ context.Context, request events.APIGatewayProxyRequest) (ev
 		Body:       string(jsonSuccessResponse),
 		StatusCode: 200,
 		Headers: map[string]string{
-			"Content-Type":                     "application/json",
-			"Access-Control-Allow-Origin":      "*",
-			"Access-Control-Allow-Credentials": "true",
-			"Access-Control-Allow-Headers":     "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
-			"Access-Control-Allow-Methods":     "OPTIONS,POST",
-			"Access-Control-Expose-Headers":    "x-api-key,x-request-id",
-			"Access-Control-Max-Age":           "86400", // One day
+			"Content-Type": "application/json",
 		},
 	}, nil
 }
