@@ -19,7 +19,7 @@ phases:
       - zip main.zip main
   post_build:
     commands:
-      - echo "Post-build phase: deploying to AWS Lambda..."
+      - echo "Deploying to AWS Lambda..."
       - aws lambda update-function-code --function-name mailservice-lambda --zip-file fileb://main.zip
 
 artifacts:
