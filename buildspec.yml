@@ -7,11 +7,6 @@ phases:
     commands:
       - echo "Downloading dependencies..."
       - go get ./...
-  pre_build:
-    commands:
-      - echo "Building the project..."
-      - GOOS=linux go build -o main
-      - zip main.zip main
   build:
     commands:
       - echo "Rebuilding the project for with changes..."
