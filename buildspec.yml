@@ -1,0 +1,31 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      golang: 1.16
+    commands:
+      - echo "Downloading dependencies..."
+      - go get ./...
+  pre_build:
+    commands:
+      - echo "Checking if Lambda function exists..."
+      - |
+        if ! aws lambda get-function --function-name mailservice-lambda; then
+          echo "Lambda function does not exist, creating..."
+          aws lambda create-function --function-name mailservice-lambda --zip-file fileb://main.zip --handler main --runtime go1.x --role arn:aws:iam::818787057865:role/jgn-lambda-exec-role
+        fi
+  build:
+    commands:
+      - echo "Building the project..."
+      - GOOS=linux go build -o main
+  post_build:
+    commands:
+      - echo "Post-build phase: deploying to AWS Lambda..."
+      - aws lambda update-function-code --function-name mailservice-lambda --zip-file fileb://main.zip
+
+artifacts:
+  files:
+    - main
+  discard-paths: yes
+
