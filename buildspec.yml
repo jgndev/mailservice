@@ -10,7 +10,8 @@ phases:
   pre_build:
     commands:
       - echo "Checking if Lambda function exists..."
-      - if ! aws lambda get-function --function-name mailservice-lambda; then
+      - |
+        if ! aws lambda get-function --function-name mailservice-lambda > /dev/null 2>&1; then
           echo "Lambda function does not exist, creating..."
           aws lambda create-function --function-name mailservice-lambda --zip-file fileb://main.zip --handler main --runtime go1.x --role arn:aws:iam::818787057865:role/jgn-lambda-exec-role
         fi
