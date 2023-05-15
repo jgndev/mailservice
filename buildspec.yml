@@ -9,6 +9,9 @@ phases:
       - go get ./...
   pre_build:
     commands:
+      - echo "Building the project..."
+      - GOOS=linux go build -o main
+      - zip main.zip main
       - echo "Checking if Lambda function exists..."
       - |
         if ! aws lambda get-function --function-name mailservice-lambda > /dev/null 2>&1; then
@@ -17,8 +20,9 @@ phases:
         fi
   build:
     commands:
-      - echo "Building the project..."
+      - echo "Rebuilding the project for any changes..."
       - GOOS=linux go build -o main
+      - zip main.zip main
   post_build:
     commands:
       - echo "Post-build phase: deploying to AWS Lambda..."
@@ -26,6 +30,5 @@ phases:
 
 artifacts:
   files:
-    - main
+    - main.zip
   discard-paths: yes
-
