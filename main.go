@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
@@ -19,9 +20,12 @@ func init() {
 }
 
 func HandleRequest(ctx context.Context, request models.MailRequest) (string, error) {
-	from := mail.NewEmail("Example User", "test@example.com")
+	//from := mail.NewEmail("Example User", "test@example.com")
+	//from := mail.NewEmail(fmt.Printf("%s", request.From), request.From)
+	from := mail.NewEmail(fmt.Sprintf("%v", request.From), request.From)
 	subject := request.Subject
-	to := mail.NewEmail("Example User", request.To)
+	//to := mail.NewEmail("Example User", request.To)
+	to := mail.NewEmail(fmt.Sprintf("%v", request.To), request.To)
 
 	tmpl := template.Must(template.ParseFiles("mailTemplate.html"))
 	data := models.MailData{

@@ -11,12 +11,12 @@ phases:
     commands:
       - echo "Building the project..."
       - GOOS=linux go build -o main
-      - zip main.zip main
+      - zip main.zip main mailTemplate.html
   build:
     commands:
       - echo "Rebuilding the project with changes..."
       - GOOS=linux go build -o main
-      - zip main.zip main
+      - zip main.zip main mailTemplate.html
   post_build:
     commands:
       - echo "Deploying to AWS Lambda..."
