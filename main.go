@@ -17,8 +17,7 @@ import (
 )
 
 func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	log.Printf("From OS environment variables: %s", os.Getenv("MAILGUN_API_KEY"))
-	kApiKey := "51d27a6a2a47e22cfc35f84804e4164a-db4df449-0ff34b6c"
+	kApiKey := os.Getenv("MAILGUN_API_KEY")
 	log.Printf("API Key: %s", kApiKey)
 
 	mg := mailgun.NewMailgun("jgnovak.com", kApiKey)
