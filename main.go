@@ -17,12 +17,6 @@ import (
 )
 
 func HandleRequest(_ context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	log.Print(os.Getenv("MAILERSEND_API_KEY"))
-	kApiKey := os.Getenv("MAILERSEND_API_KEY")
-	log.Printf("API Key: %s", kApiKey)
-
-	//mg := mailgun.NewMailgun("jgnovak.com", kApiKey)
-	// Create an instance of the mailersend client
 	ms := mailersend.NewMailersend(os.Getenv("MAILERSEND_API_KEY"))
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -87,7 +81,6 @@ func HandleRequest(_ context.Context, request events.APIGatewayProxyRequest) (ev
 		},
 	}
 
-	//sendAt := time.Now().Add(5 * time.Second).Unix()
 	message := ms.Email.NewMessage()
 
 	message.SetFrom(from)
@@ -95,18 +88,11 @@ func HandleRequest(_ context.Context, request events.APIGatewayProxyRequest) (ev
 	message.SetSubject(subject)
 	message.SetHTML(html)
 	message.SetText(text)
-	//message.SetSendAt(sendAt)
 	message.SetInReplyTo("client-id")
 
 	res, err := ms.Email.Send(ctx, message)
 	log.Print(res.Header.Get("X-Message-Id"))
-	//message := mg.NewMessage(mailRequest.From, mailRequest.Subject, body.String(), mailRequest.To)
-	//message.SetHtml(body.String())
 
-	//ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	//defer cancel()
-
-	//resp, id, err := mg.Send(ctx, message)
 	if err != nil {
 		apiResponse := events.APIGatewayProxyResponse{
 			StatusCode: 400,
@@ -118,8 +104,6 @@ func HandleRequest(_ context.Context, request events.APIGatewayProxyRequest) (ev
 		log.Printf("Error doing the thing: %v\n", err.Error())
 		return apiResponse, err
 	}
-
-	//log.Printf("ID: %s, Resp: %s\n/**/", id, resp)
 
 	jsonSuccessResponse, err := json.Marshal("ok") // assuming "ok" is the response you want to send
 	if err != nil {
