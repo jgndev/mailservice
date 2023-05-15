@@ -23,7 +23,7 @@ func HandleRequest(ctx context.Context, request models.MailRequest) (string, err
 	subject := request.Subject
 	to := mail.NewEmail("Example User", request.To)
 
-	tmpl := template.Must(template.ParseFiles("templates/mailTemplate.html"))
+	tmpl := template.Must(template.ParseFiles("mailTemplate.html"))
 	data := models.MailData{
 		From:    request.From,
 		Subject: request.Subject,
