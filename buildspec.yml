@@ -14,7 +14,7 @@ phases:
       - zip main.zip main
   build:
     commands:
-      - echo "Rebuilding the project for any changes..."
+      - echo "Rebuilding the project for with changes..."
       - GOOS=linux go build -o main
       - zip main.zip main
   post_build:
