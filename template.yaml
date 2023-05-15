@@ -1,0 +1,16 @@
+Resources:
+  MailService:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main
+      Runtime: go1.x
+      CodeUri: .
+      Events:  # <-- Define API Gateway event here
+        MailEndpoint:
+          Type: Api
+          Properties:
+            Path: /mail
+            Method: post
+      Environment:
+        Variables:
+          SENDGRID_API_KEY: !Ref SendGridApiKey

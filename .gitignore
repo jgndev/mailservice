@@ -1,10 +1,11 @@
 # Environment variables
 .env
+env.json
 
 # Editors
 .vscode/
 .idea/
 
 # Builds
-/main
-/main.zip
+main
+main.zip

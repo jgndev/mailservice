@@ -1,57 +1,105 @@
 package main
 
 import (
-	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/sendgrid/sendgrid-go"
-	"github.com/sendgrid/sendgrid-go/helpers/mail"
+	"github.com/mailgun/mailgun-go/v4"
 	"html/template"
 	"jgnovak.com/mailservice/models"
 	"log"
+	"net/http"
 	"os"
+	"strings"
+	"time"
 )
 
-var kApiKey string = ""
+func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	log.Printf("From OS environment variables: %s", os.Getenv("MAILGUN_API_KEY"))
+	kApiKey := "51d27a6a2a47e22cfc35f84804e4164a-db4df449-0ff34b6c"
+	log.Printf("API Key: %s", kApiKey)
 
-func init() {
-	kApiKey = os.Getenv("SENDGRID_API_KEY")
-}
+	mg := mailgun.NewMailgun("jgnovak.com", kApiKey)
 
-func HandleRequest(ctx context.Context, request models.MailRequest) (string, error) {
-	//from := mail.NewEmail("Example User", "test@example.com")
-	//from := mail.NewEmail(fmt.Printf("%s", request.From), request.From)
-	from := mail.NewEmail(fmt.Sprintf("%v", request.From), request.From)
-	subject := request.Subject
-	//to := mail.NewEmail("Example User", request.To)
-	to := mail.NewEmail(fmt.Sprintf("%v", request.To), request.To)
-
-	tmpl := template.Must(template.ParseFiles("mailTemplate.html"))
-	data := models.MailData{
-		From:    request.From,
-		Subject: request.Subject,
-		Body:    request.Body,
-	}
-
-	buf := new(bytes.Buffer)
-	if err := tmpl.Execute(buf, data); err != nil {
-		return "Failed to execute template", err
-	}
-
-	htmlContent := buf.String()
-	message := mail.NewSingleEmail(from, subject, to, request.Body, htmlContent)
-
-	client := sendgrid.NewSendClient(kApiKey)
-	_, err := client.Send(message)
-
+	var mailRequest models.MailRequest
+	err := json.Unmarshal([]byte(request.Body), &mailRequest)
 	if err != nil {
-		log.Println(err)
-		return "Failed to send email", err
-	} else {
-		log.Println("Email sent successfully")
-		return "Email sent successfully", nil
+		log.Printf("Could not unmarshal request body to mail request: %v", err.Error())
+		return events.APIGatewayProxyResponse{
+			Body:       fmt.Sprintf("Failed to parse request body: %v", err),
+			StatusCode: http.StatusBadRequest,
+			Headers: map[string]string{
+				"Content-Type": "application/json",
+			},
+			IsBase64Encoded:   false,
+			MultiValueHeaders: nil,
+		}, nil
 	}
+
+	tmpl, err := template.ParseFiles("mailTemplate.html")
+	if err != nil {
+		log.Print(err.Error())
+		return events.APIGatewayProxyResponse{
+			Body:       fmt.Sprintf("Failed to create html template: %v", err.Error()),
+			StatusCode: http.StatusInternalServerError,
+			Headers: map[string]string{
+				"Content-Type": "application/json",
+			},
+			IsBase64Encoded:   false,
+			MultiValueHeaders: nil,
+		}, nil
+	}
+
+	body := new(strings.Builder)
+	err = tmpl.Execute(body, mailRequest)
+	if err != nil {
+		log.Print(err.Error())
+		return events.APIGatewayProxyResponse{
+			Body:       fmt.Sprintf("Failed to parse html template: %v", err.Error()),
+			StatusCode: http.StatusInternalServerError,
+			Headers: map[string]string{
+				"Content-Type": "application/json",
+			},
+			IsBase64Encoded:   false,
+			MultiValueHeaders: nil,
+		}, nil
+	}
+
+	log.Printf("To: %s\nFrom: %s\nSubject: %s\nBody: %s\n", mailRequest.To, mailRequest.From, mailRequest.Subject, mailRequest.Body)
+	message := mg.NewMessage(mailRequest.From, mailRequest.Subject, body.String(), mailRequest.To)
+	message.SetHtml(body.String())
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	resp, id, err := mg.Send(ctx, message)
+	if err != nil {
+		apiResponse := events.APIGatewayProxyResponse{
+			StatusCode: 400,
+			Body:       fmt.Sprintf("%v", err.Error()),
+			Headers: map[string]string{
+				"Content-Type": "application/json",
+			},
+		}
+		log.Printf("Error doing the thing: %v\n", err.Error())
+		return apiResponse, err
+	}
+
+	log.Printf("ID: %s, Resp: %s\n", id, resp)
+
+	jsonSuccessResponse, err := json.Marshal("ok") // assuming "ok" is the response you want to send
+	if err != nil {
+		log.Printf("Error marshalling success response: %v", err.Error())
+	}
+	return events.APIGatewayProxyResponse{
+		Body:       string(jsonSuccessResponse),
+		StatusCode: 200,
+		Headers: map[string]string{
+			"Content-Type": "application/json",
+		},
+	}, nil
 }
 
 func main() {
