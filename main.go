@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/mailgun/mailgun-go/v4"
+	"github.com/mailersend/mailersend-go"
 	"html/template"
 	"jgnovak.com/mailservice/models"
 	"log"
@@ -16,11 +16,17 @@ import (
 	"time"
 )
 
-func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	kApiKey := os.Getenv("MAILGUN_API_KEY")
+func HandleRequest(_ context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	log.Print(os.Getenv("MAILERSEND_API_KEY"))
+	kApiKey := os.Getenv("MAILERSEND_API_KEY")
 	log.Printf("API Key: %s", kApiKey)
 
-	mg := mailgun.NewMailgun("jgnovak.com", kApiKey)
+	//mg := mailgun.NewMailgun("jgnovak.com", kApiKey)
+	// Create an instance of the mailersend client
+	ms := mailersend.NewMailersend(os.Getenv("MAILERSEND_API_KEY"))
+	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 
 	var mailRequest models.MailRequest
 	err := json.Unmarshal([]byte(request.Body), &mailRequest)
@@ -67,13 +73,40 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 	}
 
 	log.Printf("To: %s\nFrom: %s\nSubject: %s\nBody: %s\n", mailRequest.To, mailRequest.From, mailRequest.Subject, mailRequest.Body)
-	message := mg.NewMessage(mailRequest.From, mailRequest.Subject, body.String(), mailRequest.To)
-	message.SetHtml(body.String())
+	subject := mailRequest.Subject
+	text := mailRequest.Body
+	html := body.String()
+	from := mailersend.From{
+		Name:  "Jeremy Novak",
+		Email: mailRequest.From,
+	}
+	recipient := []mailersend.Recipient{
+		{
+			Name:  "",
+			Email: mailRequest.To,
+		},
+	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
+	//sendAt := time.Now().Add(5 * time.Second).Unix()
+	message := ms.Email.NewMessage()
 
-	resp, id, err := mg.Send(ctx, message)
+	message.SetFrom(from)
+	message.SetRecipients(recipient)
+	message.SetSubject(subject)
+	message.SetHTML(html)
+	message.SetText(text)
+	//message.SetSendAt(sendAt)
+	message.SetInReplyTo("client-id")
+
+	res, err := ms.Email.Send(ctx, message)
+	log.Print(res.Header.Get("X-Message-Id"))
+	//message := mg.NewMessage(mailRequest.From, mailRequest.Subject, body.String(), mailRequest.To)
+	//message.SetHtml(body.String())
+
+	//ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	//defer cancel()
+
+	//resp, id, err := mg.Send(ctx, message)
 	if err != nil {
 		apiResponse := events.APIGatewayProxyResponse{
 			StatusCode: 400,
@@ -86,7 +119,7 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 		return apiResponse, err
 	}
 
-	log.Printf("ID: %s, Resp: %s\n", id, resp)
+	//log.Printf("ID: %s, Resp: %s\n/**/", id, resp)
 
 	jsonSuccessResponse, err := json.Marshal("ok") // assuming "ok" is the response you want to send
 	if err != nil {

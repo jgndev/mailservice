@@ -13,4 +13,4 @@ Resources:
             Method: post
       Environment:
         Variables:
-          SENDGRID_API_KEY: !Ref SendGridApiKey
+          MAILERSEND_API_KEY: !Ref MailerSendApiKey
